@@ -1,0 +1,48 @@
+services:
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      PORT: 8000
+      DB_HOST: db
+      DB_NAME: postgres
+      DB_USER: postgres
+      DB_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: /run/secrets/db_password
+    -volumes:
+      - db_data:/var/lib/postgresql/data
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+
+secrets:
+  db_password:
+    file: ./db_password.txt
